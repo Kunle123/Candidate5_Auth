@@ -22,7 +22,7 @@ const sequelize = require('../models/sequelize');
 
 // Import routes and passport config
 const authRoutes = require('./routes/auth');
-const cvRoutes = require('./routes/cv');
+//const cvRoutes = require('./routes/cv');
 require('./config/passport');
 
 const app = express();
@@ -65,7 +65,7 @@ app.use(passport.initialize());
 
 // --- Routes ---
 app.use('/auth', authRoutes);
-app.use('/cvs', cvRoutes);
+//app.use('/cvs', cvRoutes);
 
 // --- Health Check ---
 app.get('/health', (req, res) => {
