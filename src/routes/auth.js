@@ -272,4 +272,9 @@ router.post('/change-password', authenticateJWT, async (req, res) => {
   }
 });
 
+// Get current authenticated user info
+router.get('/me', authenticateJWT, async (req, res) => {
+  res.json({ user: req.user });
+});
+
 module.exports = router; 
