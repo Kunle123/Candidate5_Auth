@@ -48,6 +48,7 @@ const User = sequelize.define('User', {
   },
 }, {
   timestamps: true,
+  tableName: 'Users'
 });
 
 // Helper method for password hashing
