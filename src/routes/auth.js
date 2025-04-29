@@ -64,8 +64,8 @@ router.get('/user', (req, res) => {
 // Email/Password Registration
 router.post('/register', async (req, res) => {
   const { name, email, password } = req.body;
-  if (!name || !email || !password) {
-    return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
+  if (!email || !password) {
+    return res.status(400).json({ success: false, message: 'Email and password are required.' });
   }
   try {
     // Check if user already exists
@@ -75,9 +75,15 @@ router.post('/register', async (req, res) => {
     }
     // Hash password
     const password_hash = await bcrypt.hash(password, 10);
-    // Insert user
+    // Insert user (UUID will be generated automatically)
     const user = await User.create({ name, email, password: password_hash });
-    res.json({ success: true, message: 'User registered successfully.', user });
+    // Issue JWT with UUID as id
+    const token = jwt.sign(
+      { id: user.id, name: user.name, email: user.email },
+      process.env.JWT_SECRET,
+      { algorithm: process.env.JWT_ALGORITHM || 'HS256', expiresIn: process.env.JWT_EXPIRATION || '30m' }
+    );
+    res.json({ success: true, message: 'User registered successfully.', user: { id: user.id, name: user.name, email: user.email }, token });
   } catch (err) {
     console.error('Registration error:', err);
     res.status(500).json({ success: false, message: 'Registration failed.' });
