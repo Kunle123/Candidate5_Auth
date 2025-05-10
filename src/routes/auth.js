@@ -6,6 +6,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { Op } = require('sequelize');
+const fetch = require('node-fetch');
 
 // Google Auth Routes
 router.get('/google',
@@ -77,6 +78,34 @@ router.post('/register', async (req, res) => {
     const password_hash = await bcrypt.hash(password, 10);
     // Insert user (UUID will be generated automatically)
     const user = await User.create({ name, email, password: password_hash });
+    
+    // Create user profile in user service (direct call)
+    try {
+      const userProfile = {
+        id: user.id,
+        email: user.email,
+        name: user.name || ''
+      };
+      
+      const response = await fetch('https://c5userservce-production.up.railway.app/api/user/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.INTER_SERVICE_SECRET}`
+        },
+        body: JSON.stringify(userProfile),
+        timeout: 10000 // 10 second timeout
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to create user profile:', await response.text());
+        // Don't block registration if profile creation fails
+      }
+    } catch (profileError) {
+      console.error('Error creating user profile:', profileError);
+      // Don't block registration if profile creation fails
+    }
+    
     // Issue JWT with UUID as id
     const token = jwt.sign(
       { id: user.id, name: user.name, email: user.email },
@@ -275,6 +304,41 @@ router.post('/change-password', authenticateJWT, async (req, res) => {
 // Get current authenticated user info
 router.get('/me', authenticateJWT, async (req, res) => {
   res.json({ user: req.user });
+});
+
+// --- User Profile Creation Endpoint ---
+router.post('/api/user/profile', async (req, res) => {
+  // Set CORS headers for this endpoint
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+
+  const { id, email, name } = req.body;
+  if (!id || !email) {
+    return res.status(400).json({ success: false, message: 'id and email are required.' });
+  }
+  try {
+    // Check if user already exists
+    let user = await User.findOne({ where: { id } });
+    if (user) {
+      // Update profile if exists
+      user.email = email;
+      user.name = name || user.name;
+      user.updatedAt = new Date();
+      await user.save();
+    } else {
+      // Create new user profile
+      user = await User.create({ id, email, name: name || '', createdAt: new Date(), updatedAt: new Date() });
+    }
+    return res.status(201).json({ success: true, message: 'User profile created/updated successfully.', user: { id: user.id, email: user.email, name: user.name } });
+  } catch (err) {
+    console.error('Error creating user profile:', err);
+    return res.status(500).json({ success: false, message: 'Failed to create user profile.' });
+  }
 });
 
 module.exports = router; 
