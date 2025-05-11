@@ -79,7 +79,7 @@ router.post('/register', async (req, res) => {
     // Insert user (UUID will be generated automatically)
     const user = await User.create({ name, email, password: password_hash });
     
-    // Create user profile in user service (direct call)
+    // Create user profile in user service (via API gateway)
     try {
       const userProfile = {
         id: user.id,
@@ -87,7 +87,7 @@ router.post('/register', async (req, res) => {
         name: user.name || ''
       };
       
-      const response = await fetch('https://c5userservce-production.up.railway.app/api/user/profile', {
+      const response = await fetch('https://api-gw-production.up.railway.app/api/user/profile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
