@@ -64,10 +64,11 @@ router.get('/user', (req, res) => {
 
 // Email/Password Registration
 router.post('/register', async (req, res) => {
-  const { name, email, password } = req.body;
+  let { name, email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ success: false, message: 'Email and password are required.' });
   }
+  email = email.trim().toLowerCase();
   try {
     // Check if user already exists
     const userCheck = await User.findOne({ where: { email } });
@@ -143,10 +144,11 @@ function authenticateJWT(req, res, next) {
 
 // Email/Password Login
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+  let { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ success: false, message: 'Email and password are required.' });
   }
+  email = email.trim().toLowerCase();
   try {
     // Find user
     const user = await User.findOne({ where: { email } });
@@ -182,10 +184,11 @@ router.get('/profile', authenticateJWT, (req, res) => {
 
 // Password Reset Request
 router.post('/forgot', async (req, res) => {
-  const { email } = req.body;
+  let { email } = req.body;
   if (!email) {
     return res.status(400).json({ success: false, message: 'Email is required.' });
   }
+  email = email.trim().toLowerCase();
   try {
     const user = await User.findOne({ where: { email } });
     if (!user) {
@@ -231,10 +234,11 @@ router.post('/reset', async (req, res) => {
 
 // Request Email Verification
 router.post('/request-verification', async (req, res) => {
-  const { email } = req.body;
+  let { email } = req.body;
   if (!email) {
     return res.status(400).json({ success: false, message: 'Email is required.' });
   }
+  email = email.trim().toLowerCase();
   try {
     const user = await User.findOne({ where: { email } });
     if (!user) {

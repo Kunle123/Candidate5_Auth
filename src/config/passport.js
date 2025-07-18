@@ -22,19 +22,13 @@ passport.use(new GoogleStrategy({
   },
   async (req, accessToken, refreshToken, profile, done) => {
     try {
-      // Here you would typically:
-      // 1. Check if user exists in your database
-      // 2. Create new user if they don't exist
-      // 3. Return user object
-      
       const user = {
         id: profile.id,
-        email: profile.emails[0].value,
+        email: profile.emails[0].value.toLowerCase(),
         name: profile.displayName,
         provider: 'google',
         accessToken
       };
-      
       return done(null, user);
     } catch (error) {
       return done(error, null);
@@ -54,12 +48,11 @@ passport.use(new LinkedInStrategy({
     try {
       const user = {
         id: profile.id,
-        email: profile.emails[0].value,
+        email: profile.emails[0].value.toLowerCase(),
         name: profile.displayName,
         provider: 'linkedin',
         accessToken
       };
-      
       return done(null, user);
     } catch (error) {
       return done(error, null);
