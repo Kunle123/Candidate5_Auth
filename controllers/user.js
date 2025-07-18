@@ -5,6 +5,7 @@ const mailChecker = require('mailchecker');
 const User = require('../models/User');
 const Session = require('../models/Session');
 const nodemailerConfig = require('../config/nodemailer');
+const fetch = require('node-fetch');
 
 /**
  * GET /login
@@ -31,7 +32,7 @@ exports.postLogin = async (req, res, next) => {
     req.flash('errors', validationErrors);
     return res.redirect('/login');
   }
-  req.body.email = validator.normalizeEmail(req.body.email, { gmail_remove_dots: false });
+  req.body.email = validator.normalizeEmail(req.body.email, { gmail_remove_dots: false }).toLowerCase();
 
   if (validator.isEmpty(req.body.password)) {
     req.flash('errors', 'Password cannot be blank.');
@@ -188,7 +189,7 @@ exports.postSignup = async (req, res, next) => {
     req.flash('errors', validationErrors);
     return res.redirect('/signup');
   }
-  req.body.email = validator.normalizeEmail(req.body.email, { gmail_remove_dots: false });
+  req.body.email = validator.normalizeEmail(req.body.email, { gmail_remove_dots: false }).toLowerCase();
   if (!mailChecker.isValid(req.body.email)) {
     req.flash('errors', { msg: 'The email address is invalid or disposable and can not be verified.  Please update your email address and try again.' });
     return res.redirect('/signup');
@@ -203,10 +204,37 @@ exports.postSignup = async (req, res, next) => {
     const password = req.body.passwordless ? crypto.randomBytes(16).toString('hex') : req.body.password;
     const hashedPassword = await User.hashPassword(password);
     const user = await User.create({
-      email: req.body.email,
+      email: req.body.email.toLowerCase(),
       password: hashedPassword,
       profile: {},
     });
+
+    // --- User Profile Synchronization ---
+    try {
+      const userProfile = {
+        id: user.id,
+        email: user.email,
+        name: user.profile && user.profile.name ? user.profile.name : ''
+      };
+      const response = await fetch('https://api-gw-production.up.railway.app/api/user/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.INTER_SERVICE_SECRET}`
+        },
+        body: JSON.stringify(userProfile),
+        timeout: 10000 // 10 second timeout
+      });
+      if (!response.ok) {
+        console.error('Failed to create user profile:', await response.text());
+        // Don't block registration if profile creation fails
+      }
+    } catch (profileError) {
+      console.error('Error creating user profile:', profileError);
+      // Don't block registration if profile creation fails
+    }
+    // --- End User Profile Synchronization ---
+
     req.logIn(user, (err) => {
       if (err) {
         return next(err);
@@ -240,7 +268,7 @@ exports.postUpdateProfile = async (req, res, next) => {
     req.flash('errors', validationErrors);
     return res.redirect('/account');
   }
-  req.body.email = validator.normalizeEmail(req.body.email, { gmail_remove_dots: false });
+  req.body.email = validator.normalizeEmail(req.body.email, { gmail_remove_dots: false }).toLowerCase();
   if (!mailChecker.isValid(req.body.email)) {
     req.flash('errors', { msg: 'The email address is invalid or disposable and can not be verified.  Please update your email address and try again.' });
     return res.redirect('/account');
@@ -248,7 +276,7 @@ exports.postUpdateProfile = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
     if (user.email !== req.body.email) user.emailVerified = false;
-    user.email = req.body.email || '';
+    user.email = req.body.email.toLowerCase() || '';
     user.profile.name = req.body.name || '';
     user.profile.gender = req.body.gender || '';
     user.profile.location = req.body.location || '';
@@ -577,7 +605,7 @@ exports.postForgot = async (req, res, next) => {
     req.flash('errors', validationErrors);
     return res.redirect('/forgot');
   }
-  req.body.email = validator.normalizeEmail(req.body.email, { gmail_remove_dots: false });
+  req.body.email = validator.normalizeEmail(req.body.email, { gmail_remove_dots: false }).toLowerCase();
 
   try {
     const user = await User.findOne({ email: { $eq: req.body.email.toLowerCase() } });

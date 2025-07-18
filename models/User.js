@@ -51,6 +51,12 @@ const User = sequelize.define('User', {
   tableName: 'users'
 });
 
+User.beforeSave((user, options) => {
+  if (user.email && typeof user.email === 'string') {
+    user.email = user.email.toLowerCase();
+  }
+});
+
 // Helper method for password hashing
 User.hashPassword = async function(password) {
   return bcrypt.hash(password, 10);
