@@ -35,7 +35,8 @@ const allowedOrigins = [
   'https://candidatev.vercel.app',
   'https://api-gw-production.up.railway.app',
   'http://localhost:3000',
-  'http://localhost:5173'
+  'http://localhost:5173',
+  'https://candidate5.co.uk' // Added production frontend
 ];
 
 app.use(cors({
