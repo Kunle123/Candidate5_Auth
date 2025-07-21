@@ -17,7 +17,7 @@ passport.deserializeUser((user, done) => {
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "/auth/google/callback",
+    callbackURL: "https://candidatev-auth-production.up.railway.app/auth/google/callback",
     passReqToCallback: true
   },
   async (req, accessToken, refreshToken, profile, done) => {
@@ -40,7 +40,7 @@ passport.use(new GoogleStrategy({
 passport.use(new LinkedInStrategy({
     clientID: process.env.LINKEDIN_CLIENT_ID,
     clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
-    callbackURL: "/auth/linkedin/callback",
+    callbackURL: "https://candidatev-auth-production.up.railway.app/auth/linkedin/callback",
     scope: ['r_emailaddress', 'r_liteprofile'],
     passReqToCallback: true
   },
