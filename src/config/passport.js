@@ -17,18 +17,24 @@ passport.deserializeUser((user, done) => {
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALLBACK_URL,
+    callbackURL: "https://api-gw-production.up.railway.app/auth/google/callback",
     passReqToCallback: true
   },
   async (req, accessToken, refreshToken, profile, done) => {
     try {
+      // Here you would typically:
+      // 1. Check if user exists in your database
+      // 2. Create new user if they don't exist
+      // 3. Return user object
+      
       const user = {
         id: profile.id,
-        email: profile.emails[0].value.toLowerCase(),
+        email: profile.emails[0].value,
         name: profile.displayName,
         provider: 'google',
         accessToken
       };
+      
       return done(null, user);
     } catch (error) {
       return done(error, null);
@@ -40,7 +46,7 @@ passport.use(new GoogleStrategy({
 passport.use(new LinkedInStrategy({
     clientID: process.env.LINKEDIN_CLIENT_ID,
     clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
-    callbackURL: "https://candidatev-auth-production.up.railway.app/auth/linkedin/callback",
+    callbackURL: "https://api-gw-production.up.railway.app/auth/linkedin/callback",
     scope: ['r_emailaddress', 'r_liteprofile'],
     passReqToCallback: true
   },
@@ -48,11 +54,12 @@ passport.use(new LinkedInStrategy({
     try {
       const user = {
         id: profile.id,
-        email: profile.emails[0].value.toLowerCase(),
+        email: profile.emails[0].value,
         name: profile.displayName,
         provider: 'linkedin',
         accessToken
       };
+      
       return done(null, user);
     } catch (error) {
       return done(error, null);
