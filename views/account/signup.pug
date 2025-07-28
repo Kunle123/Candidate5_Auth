@@ -26,11 +26,14 @@ block content
     .form-group.row.mb-3
       .col-md-3
       .col-md-7
+        // Google reCAPTCHA widget
+        .g-recaptcha(data-sitekey=process.env.RECAPTCHA_SITE_KEY || 'YOUR_RECAPTCHA_SITE_KEY')
         button.btn.btn-success(type='submit')
           i.fas.fa-user-plus.fa-sm.iconpadding
           | Signup
 
   //- Handle checkbox toggle
+  script(src='https://www.google.com/recaptcha/api.js', async defer)
   script.
     document.getElementById('passwordless').addEventListener('change', function () {
       const passwordFields = document.getElementById('password-fields');
