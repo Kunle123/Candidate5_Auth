@@ -46,7 +46,7 @@ passport.use(new GoogleStrategy({
 passport.use(new LinkedInStrategy({
     clientID: process.env.LINKEDIN_CLIENT_ID,
     clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
-    callbackURL: "https://api-gw-production.up.railway.app/auth/linkedin/callback",
+    callbackURL: process.env.LINKEDIN_CALLBACK_URL,
     scope: ['r_emailaddress', 'r_liteprofile'],
     passReqToCallback: true
   },
