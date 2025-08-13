@@ -65,6 +65,8 @@ router.get('/user', (req, res) => {
 // Email/Password Registration
 router.post('/register', async (req, res) => {
   let { name, email, password, code, 'g-recaptcha-response': recaptchaResponse } = req.body;
+  // Debug log for registration code
+  console.log('REGISTRATION_CODE on server:', process.env.REGISTRATION_CODE);
   // Require 6-digit code
   if (!code || code !== process.env.REGISTRATION_CODE) {
     return res.status(400).json({ success: false, message: 'A valid 6-digit registration code is required.' });
