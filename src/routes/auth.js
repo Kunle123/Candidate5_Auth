@@ -64,12 +64,30 @@ router.get('/user', (req, res) => {
 
 // Email/Password Registration
 router.post('/register', async (req, res) => {
-  let { name, email, password } = req.body;
+  let { name, email, password, code, 'g-recaptcha-response': recaptchaResponse } = req.body;
+  // Require 6-digit code
+  if (!code || code !== process.env.REGISTRATION_CODE) {
+    return res.status(400).json({ success: false, message: 'A valid 6-digit registration code is required.' });
+  }
   if (!email || !password) {
     return res.status(400).json({ success: false, message: 'Email and password are required.' });
   }
-  email = email.trim().toLowerCase();
+  // Verify reCAPTCHA
+  if (!recaptchaResponse) {
+    return res.status(400).json({ success: false, message: 'Captcha is required.' });
+  }
   try {
+    const recaptchaSecret = process.env.RECAPTCHA_SECRET;
+    const recaptchaVerify = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `secret=${recaptchaSecret}&response=${recaptchaResponse}`
+    });
+    const recaptchaData = await recaptchaVerify.json();
+    if (!recaptchaData.success) {
+      return res.status(400).json({ success: false, message: 'Captcha verification failed.' });
+    }
+    email = email.trim().toLowerCase();
     // Check if user already exists
     const userCheck = await User.findOne({ where: { email } });
     if (userCheck) {
