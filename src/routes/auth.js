@@ -64,7 +64,8 @@ router.get('/user', (req, res) => {
 
 // Email/Password Registration
 router.post('/register', async (req, res) => {
-  let { name, email, password, 'g-recaptcha-response': recaptchaResponse } = req.body;
+  let { name, email, password, 'g-recaptcha-response': recaptchaResponse, captchaToken } = req.body;
+  recaptchaResponse = recaptchaResponse || captchaToken;
   if (!email || !password) {
     return res.status(400).json({ success: false, message: 'Email and password are required.' });
   }
