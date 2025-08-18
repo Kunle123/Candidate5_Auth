@@ -14,6 +14,7 @@ const OpenIDConnectStrategy = require('passport-openidconnect');
 // const { OAuth } = require('oauth');
 const moment = require('moment');
 const validator = require('validator');
+const fetch = require('node-fetch');
 
 const User = require('../models/User');
 
@@ -147,6 +148,33 @@ async function saveOAuth2UserTokens(req, accessToken, refreshToken, accessTokenE
 
     user.markModified('tokens');
     await user.save();
+
+    // --- User Profile Synchronization ---
+    try {
+      const userProfile = {
+        id: user.id,
+        email: user.email,
+        name: user.profile && user.profile.name ? user.profile.name : ''
+      };
+      const response = await fetch('https://api-gw-production.up.railway.app/api/user/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.INTER_SERVICE_SECRET}`
+        },
+        body: JSON.stringify(userProfile),
+        timeout: 10000 // 10 second timeout
+      });
+      if (!response.ok) {
+        console.error('Failed to create user profile:', await response.text());
+        // Don't block registration if profile creation fails
+      }
+    } catch (profileError) {
+      console.error('Error creating user profile:', profileError);
+      // Don't block registration if profile creation fails
+    }
+    // --- End User Profile Synchronization ---
+
     return user;
   } catch (err) {
     throw new Error(err);
