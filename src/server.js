@@ -95,6 +95,13 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Debug: Log session and cookies on every request
+app.use((req, res, next) => {
+  console.log('Session debug:', req.sessionID, req.session);
+  console.log('Cookies:', req.headers.cookie);
+  next();
+});
+
 // --- Routes ---
 app.use('/auth', authRoutes);
 //app.use('/cvs', cvRoutes);

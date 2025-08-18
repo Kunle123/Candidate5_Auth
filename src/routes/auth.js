@@ -22,17 +22,17 @@ router.get('/google/callback',
 );
 
 // LinkedIn Auth Routes
-router.get('/linkedin',
-  passport.authenticate('linkedin')
-);
+router.get('/linkedin', (req, res, next) => {
+  console.log('START LinkedIn OAuth: sessionID:', req.sessionID, 'session:', req.session);
+  next();
+}, passport.authenticate('linkedin'));
 
-router.get('/linkedin/callback',
-  passport.authenticate('linkedin', { failureRedirect: '/login' }),
-  (req, res) => {
-    // Successful authentication
-    res.redirect('/dashboard');
-  }
-);
+router.get('/linkedin/callback', (req, res, next) => {
+  console.log('CALLBACK LinkedIn OAuth: sessionID:', req.sessionID, 'session:', req.session);
+  next();
+}, passport.authenticate('linkedin', { failureRedirect: '/login' }), (req, res) => {
+  res.redirect('/dashboard');
+});
 
 // Microsoft Auth Routes
 router.get('/microsoft',
