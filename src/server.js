@@ -81,15 +81,16 @@ app.use((req, res, next) => {
 });
 
 // --- Passport Initialization ---
+app.set('trust proxy', 1);
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-session-secret',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // true if using HTTPS
     httpOnly: true,
-    sameSite: 'lax',
-    maxAge: 10 * 60 * 1000 // 10 minutes
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 10 * 60 * 1000
   }
 }));
 app.use(passport.initialize());
