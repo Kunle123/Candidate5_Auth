@@ -19,6 +19,7 @@ const passport = require('passport');
 const cors = require('cors');
 const morgan = require('morgan');
 const sequelize = require('../models/sequelize');
+const session = require('express-session');
 
 // Import routes and passport config
 const authRoutes = require('./routes/auth');
@@ -62,7 +63,35 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// --- Content Security Policy (CSP) ---
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy',
+    "default-src 'self'; " +
+    "script-src 'self' https://www.google.com https://www.gstatic.com; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "img-src 'self' data: https://www.gstatic.com https://www.google.com; " +
+    "font-src 'self' https://fonts.gstatic.com; " +
+    "connect-src 'self' https://api-gw-production.up.railway.app; " +
+    "frame-src https://www.google.com https://www.gstatic.com; " +
+    "object-src 'none'; " +
+    "base-uri 'self'; " +
+    "form-action 'self' https://accounts.google.com https://www.linkedin.com; "
+  );
+  next();
+});
+
 // --- Passport Initialization ---
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-session-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // true if using HTTPS
+    httpOnly: true,
+    sameSite: 'lax',
+    maxAge: 10 * 60 * 1000 // 10 minutes
+  }
+}));
 app.use(passport.initialize());
 
 // --- Routes ---
