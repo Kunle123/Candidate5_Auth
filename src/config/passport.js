@@ -47,7 +47,7 @@ passport.use(new LinkedInStrategy({
     clientID: process.env.LINKEDIN_CLIENT_ID,
     clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
     callbackURL: 'https://candidatev-auth-production.up.railway.app/auth/linkedin/callback',
-    scope: ['openid'],
+    scope: ['openid', 'profile'],
     passReqToCallback: true
   },
   async (req, accessToken, refreshToken, profile, done) => {
