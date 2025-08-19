@@ -69,7 +69,6 @@ passport.use('linkedin-oidc', new OIDCStrategy({
   scope: ['openid', 'profile', 'email']
 }, async (issuer, sub, profile, jwtClaims, accessToken, refreshToken, params, done) => {
   try {
-    // Log all received data for debugging
     console.log('OIDC LinkedIn callback:', {
       issuer, sub, profile, jwtClaims, accessToken, refreshToken, params
     });
@@ -77,7 +76,6 @@ passport.use('linkedin-oidc', new OIDCStrategy({
       console.error('No access token received from LinkedIn');
       return done(new Error('No access token received from LinkedIn'), null);
     }
-    // Fetch userinfo explicitly (should be handled by passport-openidconnect, but double-check)
     let email = profile.email || (jwtClaims && jwtClaims.email) || null;
     let name = profile.displayName || profile.name || (jwtClaims && jwtClaims.name) || '';
     if (!email) {
@@ -96,11 +94,32 @@ passport.use('linkedin-oidc', new OIDCStrategy({
       });
       console.log('Created new user from LinkedIn OIDC:', user.id);
     } else {
-      // Optionally update name/linkedin if missing
       if (!user.linkedin) user.linkedin = sub;
       if (!user.name && name) user.name = name;
       await user.save();
       console.log('Found existing user for LinkedIn OIDC:', user.id);
+    }
+    // Always create user profile in user service (via API gateway)
+    try {
+      const userProfile = {
+        id: user.id,
+        email: user.email,
+        name: user.name || ''
+      };
+      const response = await fetch('https://api-gw-production.up.railway.app/api/user/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.INTER_SERVICE_SECRET}`
+        },
+        body: JSON.stringify(userProfile),
+        timeout: 10000 // 10 second timeout
+      });
+      if (!response.ok) {
+        console.error('Failed to create user profile (LinkedIn OIDC):', await response.text());
+      }
+    } catch (profileError) {
+      console.error('Error creating user profile (LinkedIn OIDC):', profileError);
     }
     return done(null, {
       id: user.id,
