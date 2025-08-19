@@ -9,9 +9,11 @@ const { Op } = require('sequelize');
 const fetch = require('node-fetch');
 
 // Google Auth Routes
-router.get('/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] })
-);
+router.get('/google', (req, res, next) => {
+  req.session.oauthStart = true; // Touch the session to ensure cookie is set
+  console.log('START Google OAuth: sessionID:', req.sessionID, 'session:', req.session);
+  next();
+}, passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: '/login' }),
