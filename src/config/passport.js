@@ -61,11 +61,12 @@ passport.use(new LinkedInStrategy({
     clientID: process.env.LINKEDIN_CLIENT_ID,
     clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
     callbackURL: 'https://candidatev-auth-production.up.railway.app/auth/linkedin/callback',
-    scope: ['openid', 'profile'],
+    scope: ['r_liteprofile', 'openid', 'profile'],
     passReqToCallback: true
   },
   async (req, accessToken, refreshToken, profile, done) => {
     try {
+      console.log('LinkedIn profile:', JSON.stringify(profile, null, 2));
       // LinkedIn may not provide email unless scope is granted
       let email = null;
       if (profile.emails && profile.emails.length > 0) {
@@ -102,6 +103,7 @@ passport.use(new LinkedInStrategy({
         accessToken
       });
     } catch (error) {
+      console.error('LinkedIn strategy error:', error);
       return done(error, null);
     }
   }
