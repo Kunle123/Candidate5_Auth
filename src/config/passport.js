@@ -2,6 +2,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const LinkedInStrategy = require('passport-linkedin-oauth2').Strategy;
 const MicrosoftStrategy = require('passport-microsoft').Strategy;
+const User = require('../../models/User');
 
 // Serialize user for the session
 passport.serializeUser((user, done) => {
@@ -22,20 +23,33 @@ passport.use(new GoogleStrategy({
   },
   async (req, accessToken, refreshToken, profile, done) => {
     try {
-      // Here you would typically:
-      // 1. Check if user exists in your database
-      // 2. Create new user if they don't exist
-      // 3. Return user object
-      
-      const user = {
-        id: profile.id,
-        email: profile.emails[0].value,
-        name: profile.displayName,
+      const email = profile.emails && profile.emails[0] && profile.emails[0].value ? profile.emails[0].value.toLowerCase() : null;
+      if (!email) {
+        return done(new Error('No email found in Google profile'), null);
+      }
+      let user = await User.findOne({ where: { email } });
+      if (user) {
+        // Link Google account if not already linked
+        if (!user.google) {
+          user.google = profile.id;
+          await user.save();
+        }
+      } else {
+        // Create new user
+        user = await User.create({
+          email,
+          name: profile.displayName,
+          google: profile.id,
+          profile: profile._json || {},
+        });
+      }
+      return done(null, {
+        id: user.id,
+        email: user.email,
+        name: user.name,
         provider: 'google',
         accessToken
-      };
-      
-      return done(null, user);
+      });
     } catch (error) {
       return done(error, null);
     }
@@ -52,13 +66,41 @@ passport.use(new LinkedInStrategy({
   },
   async (req, accessToken, refreshToken, profile, done) => {
     try {
-      const user = {
-        id: profile.id,
-        name: profile.displayName,
+      // LinkedIn may not provide email unless scope is granted
+      let email = null;
+      if (profile.emails && profile.emails.length > 0) {
+        email = profile.emails[0].value.toLowerCase();
+      }
+      let user = null;
+      if (email) {
+        user = await User.findOne({ where: { email } });
+      }
+      if (!user) {
+        // Try to find by LinkedIn ID if email not found
+        user = await User.findOne({ where: { linkedin: profile.id } });
+      }
+      if (user) {
+        // Link LinkedIn account if not already linked
+        if (!user.linkedin) {
+          user.linkedin = profile.id;
+          await user.save();
+        }
+      } else {
+        // Create new user
+        user = await User.create({
+          email: email || null,
+          name: profile.displayName,
+          linkedin: profile.id,
+          profile: profile._json || {},
+        });
+      }
+      return done(null, {
+        id: user.id,
+        email: user.email,
+        name: user.name,
         provider: 'linkedin',
         accessToken
-      };
-      return done(null, user);
+      });
     } catch (error) {
       return done(error, null);
     }
