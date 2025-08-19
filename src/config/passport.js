@@ -68,6 +68,7 @@ passport.use('linkedin-oidc', new OIDCStrategy({
   callbackURL: 'https://candidatev-auth-production.up.railway.app/auth/linkedin/callback',
   scope: ['openid', 'profile', 'email']
 }, async (issuer, sub, profile, jwtClaims, accessToken, refreshToken, params, done) => {
+  console.log('--- LinkedIn OIDC callback START ---');
   try {
     console.log('OIDC LinkedIn callback:', {
       issuer, sub, profile, jwtClaims, accessToken, refreshToken, params
@@ -84,6 +85,7 @@ passport.use('linkedin-oidc', new OIDCStrategy({
     let user = null;
     if (email) {
       user = await User.findOne({ where: { email } });
+      console.log('User lookup by email:', email, user ? 'FOUND' : 'NOT FOUND');
     }
     if (!user) {
       user = await User.create({
@@ -126,6 +128,7 @@ passport.use('linkedin-oidc', new OIDCStrategy({
       console.error('Error creating user profile (LinkedIn OIDC):', profileError);
       return done(new Error('Error creating user profile in user service'), null);
     }
+    console.log('--- LinkedIn OIDC callback END (success) ---');
     return done(null, {
       id: user.id,
       email: user.email,
@@ -135,6 +138,7 @@ passport.use('linkedin-oidc', new OIDCStrategy({
     });
   } catch (error) {
     console.error('LinkedIn OIDC strategy error:', error);
+    console.log('--- LinkedIn OIDC callback END (error) ---');
     return done(error, null);
   }
 }));
