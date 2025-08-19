@@ -16,8 +16,7 @@ router.get('/google',
 router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: '/login' }),
   (req, res) => {
-    // Successful authentication
-    res.redirect('/dashboard');
+    res.redirect('https://candidate5.co.uk/dashboard');
   }
 );
 
@@ -31,7 +30,7 @@ router.get('/linkedin/callback', (req, res, next) => {
   console.log('CALLBACK LinkedIn OAuth: sessionID:', req.sessionID, 'session:', req.session);
   next();
 }, passport.authenticate('linkedin', { failureRedirect: '/login' }), (req, res) => {
-  res.redirect('/dashboard');
+  res.redirect('https://candidate5.co.uk/dashboard');
 });
 
 // Microsoft Auth Routes
