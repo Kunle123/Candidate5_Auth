@@ -18,14 +18,23 @@ router.get('/google', (req, res, next) => {
 router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: 'https://candidate5.co.uk/login' }),
   (req, res) => {
-    // Generate JWT for the user
-    const token = jwt.sign(
-      { id: req.user.id, email: req.user.email, name: req.user.name },
-      process.env.JWT_SECRET,
-      { expiresIn: '1h' }
-    );
-    // Redirect to frontend with token
-    res.redirect(`https://candidate5.co.uk/login?token=${token}`);
+    try {
+      if (!req.user) {
+        console.error('Google OAuth: No user found in req.user');
+        return res.redirect('https://candidate5.co.uk/login?error=missing_user');
+      }
+      // Generate JWT for the user
+      const token = jwt.sign(
+        { id: req.user.id, email: req.user.email, name: req.user.name },
+        process.env.JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+      // Redirect to frontend with token
+      res.redirect(`https://candidate5.co.uk/login?token=${token}`);
+    } catch (err) {
+      console.error('Google OAuth callback error:', err);
+      res.redirect('https://candidate5.co.uk/login?error=oauth_failed');
+    }
   }
 );
 

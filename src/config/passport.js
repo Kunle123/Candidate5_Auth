@@ -69,7 +69,20 @@ passport.use('linkedin-oidc', new OIDCStrategy({
   scope: ['openid', 'profile', 'email']
 }, async (issuer, sub, profile, jwtClaims, accessToken, refreshToken, params, done) => {
   try {
+    // Log all received data for debugging
+    console.log('OIDC LinkedIn callback:', {
+      issuer, sub, profile, jwtClaims, accessToken, refreshToken, params
+    });
+    if (!accessToken) {
+      console.error('No access token received from LinkedIn');
+      return done(new Error('No access token received from LinkedIn'), null);
+    }
+    // Fetch userinfo explicitly (should be handled by passport-openidconnect, but double-check)
     let email = profile.email || (jwtClaims && jwtClaims.email) || null;
+    let name = profile.displayName || profile.name || (jwtClaims && jwtClaims.name) || '';
+    if (!email) {
+      console.warn('No email found in LinkedIn OIDC profile or claims');
+    }
     let user = null;
     if (email) {
       user = await User.findOne({ where: { email } });
@@ -77,10 +90,17 @@ passport.use('linkedin-oidc', new OIDCStrategy({
     if (!user) {
       user = await User.create({
         email: email || null,
-        name: profile.displayName || profile.name || '',
+        name: name,
         linkedin: sub,
         profile: profile
       });
+      console.log('Created new user from LinkedIn OIDC:', user.id);
+    } else {
+      // Optionally update name/linkedin if missing
+      if (!user.linkedin) user.linkedin = sub;
+      if (!user.name && name) user.name = name;
+      await user.save();
+      console.log('Found existing user for LinkedIn OIDC:', user.id);
     }
     return done(null, {
       id: user.id,
@@ -90,6 +110,7 @@ passport.use('linkedin-oidc', new OIDCStrategy({
       accessToken
     });
   } catch (error) {
+    console.error('LinkedIn OIDC strategy error:', error);
     return done(error, null);
   }
 }));
