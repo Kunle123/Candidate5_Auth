@@ -18,7 +18,14 @@ router.get('/google', (req, res, next) => {
 router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: 'https://candidate5.co.uk/login' }),
   (req, res) => {
-    res.redirect('https://candidate5.co.uk/dashboard');
+    // Generate JWT for the user
+    const token = jwt.sign(
+      { id: req.user.id, email: req.user.email, name: req.user.name },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+    // Redirect to frontend with token
+    res.redirect(`https://candidate5.co.uk/login?token=${token}`);
   }
 );
 
@@ -31,7 +38,14 @@ router.get('/linkedin', (req, res, next) => {
 router.get('/linkedin/callback', (req, res, next) => {
   next();
 }, passport.authenticate('linkedin-oidc', { failureRedirect: 'https://candidate5.co.uk/login' }), (req, res) => {
-  res.redirect('https://candidate5.co.uk/dashboard');
+  // Generate JWT for the user
+  const token = jwt.sign(
+    { id: req.user.id, email: req.user.email, name: req.user.name },
+    process.env.JWT_SECRET,
+    { expiresIn: '1h' }
+  );
+  // Redirect to frontend with token
+  res.redirect(`https://candidate5.co.uk/login?token=${token}`);
 });
 
 // Microsoft Auth Routes
