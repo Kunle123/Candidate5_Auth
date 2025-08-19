@@ -3,6 +3,7 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const LinkedInStrategy = require('passport-linkedin-oauth2').Strategy;
 const MicrosoftStrategy = require('passport-microsoft').Strategy;
 const User = require('../../models/User');
+const fetch = require('node-fetch');
 
 // Serialize user for the session
 passport.serializeUser((user, done) => {
@@ -61,38 +62,46 @@ passport.use(new LinkedInStrategy({
     clientID: process.env.LINKEDIN_CLIENT_ID,
     clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
     callbackURL: 'https://candidatev-auth-production.up.railway.app/auth/linkedin/callback',
-    scope: ['openid', 'profile'],
+    scope: ['openid', 'profile', 'email'],
     passReqToCallback: true
   },
   async (req, accessToken, refreshToken, profile, done) => {
     try {
-      console.log('LinkedIn profile:', JSON.stringify(profile, null, 2));
-      // LinkedIn may not provide email unless scope is granted
-      let email = null;
-      if (profile.emails && profile.emails.length > 0) {
-        email = profile.emails[0].value.toLowerCase();
+      // Fetch user info from OIDC /userinfo endpoint
+      const userinfoRes = await fetch('https://api.linkedin.com/v2/userinfo', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      if (!userinfoRes.ok) {
+        const errText = await userinfoRes.text();
+        console.error('LinkedIn OIDC /userinfo error:', errText);
+        return done(new Error('Failed to fetch LinkedIn OIDC userinfo'), null);
       }
+      const userinfo = await userinfoRes.json();
+      console.log('LinkedIn OIDC userinfo:', JSON.stringify(userinfo, null, 2));
+      let email = userinfo.email ? userinfo.email.toLowerCase() : null;
       let user = null;
       if (email) {
         user = await User.findOne({ where: { email } });
       }
       if (!user) {
-        // Try to find by LinkedIn ID if email not found
-        user = await User.findOne({ where: { linkedin: profile.id } });
+        // Try to find by LinkedIn sub (OIDC subject) if email not found
+        user = await User.findOne({ where: { linkedin: userinfo.sub } });
       }
       if (user) {
         // Link LinkedIn account if not already linked
         if (!user.linkedin) {
-          user.linkedin = profile.id;
+          user.linkedin = userinfo.sub;
           await user.save();
         }
       } else {
         // Create new user
         user = await User.create({
           email: email || null,
-          name: profile.displayName,
-          linkedin: profile.id,
-          profile: profile._json || {},
+          name: userinfo.name || '',
+          linkedin: userinfo.sub,
+          profile: userinfo,
         });
       }
       return done(null, {
@@ -103,7 +112,7 @@ passport.use(new LinkedInStrategy({
         accessToken
       });
     } catch (error) {
-      console.error('LinkedIn strategy error:', error);
+      console.error('LinkedIn OIDC strategy error:', error);
       return done(error, null);
     }
   }
