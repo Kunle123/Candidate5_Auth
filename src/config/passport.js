@@ -106,6 +106,7 @@ passport.use('linkedin-oidc', new OIDCStrategy({
         email: user.email,
         name: user.name || ''
       };
+      console.log('Creating user profile in user service:', userProfile);
       const response = await fetch('https://api-gw-production.up.railway.app/api/user/profile', {
         method: 'POST',
         headers: {
@@ -115,11 +116,15 @@ passport.use('linkedin-oidc', new OIDCStrategy({
         body: JSON.stringify(userProfile),
         timeout: 10000 // 10 second timeout
       });
+      const responseBody = await response.text();
+      console.log('User service profile creation response:', response.status, responseBody);
       if (!response.ok) {
-        console.error('Failed to create user profile (LinkedIn OIDC):', await response.text());
+        console.error('Failed to create user profile (LinkedIn OIDC):', responseBody);
+        return done(new Error('Failed to create user profile in user service'), null);
       }
     } catch (profileError) {
       console.error('Error creating user profile (LinkedIn OIDC):', profileError);
+      return done(new Error('Error creating user profile in user service'), null);
     }
     return done(null, {
       id: user.id,
