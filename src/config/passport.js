@@ -75,6 +75,7 @@ passport.use('linkedin-oidc', new OIDCStrategy({
     });
     if (!accessToken) {
       console.error('No access token received from LinkedIn');
+      console.log('--- LinkedIn OIDC callback END (error: no access token) ---');
       return done(new Error('No access token received from LinkedIn'), null);
     }
     let email = profile.email || (jwtClaims && jwtClaims.email) || null;
@@ -122,10 +123,12 @@ passport.use('linkedin-oidc', new OIDCStrategy({
       console.log('User service profile creation response:', response.status, responseBody);
       if (!response.ok) {
         console.error('Failed to create user profile (LinkedIn OIDC):', responseBody);
+        console.log('--- LinkedIn OIDC callback END (error: user service profile creation failed) ---');
         return done(new Error('Failed to create user profile in user service'), null);
       }
     } catch (profileError) {
       console.error('Error creating user profile (LinkedIn OIDC):', profileError);
+      console.log('--- LinkedIn OIDC callback END (error: user service profile creation exception) ---');
       return done(new Error('Error creating user profile in user service'), null);
     }
     console.log('--- LinkedIn OIDC callback END (success) ---');
@@ -138,7 +141,7 @@ passport.use('linkedin-oidc', new OIDCStrategy({
     });
   } catch (error) {
     console.error('LinkedIn OIDC strategy error:', error);
-    console.log('--- LinkedIn OIDC callback END (error) ---');
+    console.log('--- LinkedIn OIDC callback END (error: general exception) ---');
     return done(error, null);
   }
 }));
