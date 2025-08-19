@@ -16,7 +16,7 @@ router.get('/google', (req, res, next) => {
 }, passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 router.get('/google/callback',
-  passport.authenticate('google', { failureRedirect: '/login' }),
+  passport.authenticate('google', { failureRedirect: 'https://candidate5.co.uk/login' }),
   (req, res) => {
     res.redirect('https://candidate5.co.uk/dashboard');
   }
@@ -30,7 +30,7 @@ router.get('/linkedin', (req, res, next) => {
 
 router.get('/linkedin/callback', (req, res, next) => {
   next();
-}, passport.authenticate('linkedin-oidc', { failureRedirect: '/login' }), (req, res) => {
+}, passport.authenticate('linkedin-oidc', { failureRedirect: 'https://candidate5.co.uk/login' }), (req, res) => {
   res.redirect('https://candidate5.co.uk/dashboard');
 });
 
