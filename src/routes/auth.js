@@ -47,14 +47,23 @@ router.get('/linkedin', (req, res, next) => {
 router.get('/linkedin/callback', (req, res, next) => {
   next();
 }, passport.authenticate('linkedin-oidc', { failureRedirect: 'https://candidate5.co.uk/login' }), (req, res) => {
-  // Generate JWT for the user
-  const token = jwt.sign(
-    { id: req.user.id, email: req.user.email, name: req.user.name },
-    process.env.JWT_SECRET,
-    { expiresIn: '1h' }
-  );
-  // Redirect to frontend with token
-  res.redirect(`https://candidate5.co.uk/login?token=${token}`);
+  try {
+    if (!req.user) {
+      console.error('LinkedIn OAuth: No user found in req.user');
+      return res.redirect('https://candidate5.co.uk/login?error=missing_user');
+    }
+    // Generate JWT for the user
+    const token = jwt.sign(
+      { id: req.user.id, email: req.user.email, name: req.user.name },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+    // Redirect to frontend with token
+    res.redirect(`https://candidate5.co.uk/login?token=${token}`);
+  } catch (err) {
+    console.error('LinkedIn OAuth callback error:', err);
+    res.redirect('https://candidate5.co.uk/login?error=oauth_failed');
+  }
 });
 
 // Microsoft Auth Routes
