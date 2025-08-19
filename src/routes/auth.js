@@ -22,6 +22,7 @@ router.get('/google/callback',
 
 // LinkedIn Auth Routes
 router.get('/linkedin', (req, res, next) => {
+  req.session.oauthStart = true; // Touch the session to ensure cookie is set
   console.log('START LinkedIn OAuth: sessionID:', req.sessionID, 'session:', req.session);
   next();
 }, passport.authenticate('linkedin'));
