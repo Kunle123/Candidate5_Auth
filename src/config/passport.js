@@ -1,6 +1,6 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const LinkedInStrategy = require('passport-linkedin-oauth2').Strategy;
+const { Strategy: OIDCStrategy } = require('passport-openidconnect');
 const MicrosoftStrategy = require('passport-microsoft').Strategy;
 const User = require('../../models/User');
 const fetch = require('node-fetch');
@@ -57,63 +57,39 @@ passport.use(new GoogleStrategy({
   }
 ));
 
-// LinkedIn Strategy
-passport.use(new LinkedInStrategy({
-    clientID: process.env.LINKEDIN_CLIENT_ID,
-    clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
-    callbackURL: 'https://candidatev-auth-production.up.railway.app/auth/linkedin/callback',
-    scope: ['openid', 'profile', 'email'],
-    passReqToCallback: true
-  },
-  async (req, accessToken, refreshToken, profile, done) => {
-    try {
-      // Fetch user info from OIDC /userinfo endpoint
-      const userinfoRes = await fetch('https://api.linkedin.com/v2/userinfo', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
-        }
-      });
-      if (!userinfoRes.ok) {
-        const errText = await userinfoRes.text();
-        console.error('LinkedIn OIDC /userinfo error:', errText);
-        return done(new Error('Failed to fetch LinkedIn OIDC userinfo'), null);
-      }
-      const userinfo = await userinfoRes.json();
-      console.log('LinkedIn OIDC userinfo:', JSON.stringify(userinfo, null, 2));
-      let email = userinfo.email ? userinfo.email.toLowerCase() : null;
-      let user = null;
-      if (email) {
-        user = await User.findOne({ where: { email } });
-      }
-      if (!user) {
-        // Try to find by LinkedIn sub (OIDC subject) if email not found
-        user = await User.findOne({ where: { linkedin: userinfo.sub } });
-      }
-      if (user) {
-        // Link LinkedIn account if not already linked
-        if (!user.linkedin) {
-          user.linkedin = userinfo.sub;
-          await user.save();
-        }
-      } else {
-        // Create new user
-        user = await User.create({
-          email: email || null,
-          name: userinfo.name || '',
-          linkedin: userinfo.sub,
-          profile: userinfo,
-        });
-      }
-      return done(null, {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        provider: 'linkedin',
-        accessToken
-      });
-    } catch (error) {
-      console.error('LinkedIn OIDC strategy error:', error);
-      return done(error, null);
+// Add OIDC strategy for LinkedIn
+passport.use('linkedin-oidc', new OIDCStrategy({
+  issuer: 'https://www.linkedin.com',
+  authorizationURL: 'https://www.linkedin.com/oauth/v2/authorization',
+  tokenURL: 'https://www.linkedin.com/oauth/v2/accessToken',
+  userInfoURL: 'https://api.linkedin.com/v2/userinfo',
+  clientID: process.env.LINKEDIN_CLIENT_ID,
+  clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
+  callbackURL: 'https://candidatev-auth-production.up.railway.app/auth/linkedin/callback',
+  scope: ['openid', 'profile', 'email']
+}, async (issuer, sub, profile, jwtClaims, accessToken, refreshToken, params, done) => {
+  try {
+    let email = profile.email || (jwtClaims && jwtClaims.email) || null;
+    let user = null;
+    if (email) {
+      user = await User.findOne({ where: { email } });
     }
+    if (!user) {
+      user = await User.create({
+        email: email || null,
+        name: profile.displayName || profile.name || '',
+        linkedin: sub,
+        profile: profile
+      });
+    }
+    return done(null, {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      provider: 'linkedin',
+      accessToken
+    });
+  } catch (error) {
+    return done(error, null);
   }
-));
+}));
