@@ -29,20 +29,40 @@ passport.use(new GoogleStrategy({
         return done(new Error('No email found in Google profile'), null);
       }
       let user = await User.findOne({ where: { email } });
-      if (user) {
-        // Link Google account if not already linked
-        if (!user.google) {
-          user.google = profile.id;
-          await user.save();
-        }
-      } else {
-        // Create new user
-        user = await User.create({
-          email,
-          name: profile.displayName,
-          google: profile.id,
-          profile: profile._json || {},
+      if (!user) {
+        // Block login, do not auto-register
+        return done(null, false, { message: 'Please register first using email/password.' });
+      }
+      // Link Google account if not already linked
+      if (!user.google) {
+        user.google = profile.id;
+        await user.save();
+      }
+
+      // Create or update user profile in user service (via API gateway)
+      try {
+        const userProfile = {
+          id: user.id,
+          email: user.email,
+          name: user.name || ''
+        };
+        const response = await fetch('https://api-gw-production.up.railway.app/api/user/profile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.INTER_SERVICE_SECRET}`
+          },
+          body: JSON.stringify(userProfile),
+          timeout: 10000 // 10 second timeout
         });
+        const responseBody = await response.text();
+        if (!response.ok) {
+          console.error('Failed to create/update user profile (Google OAuth):', responseBody);
+        } else {
+          console.log('User service profile creation/update response (Google OAuth):', response.status, responseBody);
+        }
+      } catch (profileError) {
+        console.error('Error creating/updating user profile (Google OAuth):', profileError);
       }
       return done(null, {
         id: user.id,
