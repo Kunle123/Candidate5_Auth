@@ -30,7 +30,7 @@ router.get('/google/callback',
         { expiresIn: '1h' }
       );
       // Redirect to frontend with token
-      res.redirect(`https://candidate5.co.uk/login?token=${token}`);
+      res.redirect(`https://candidate5.co.uk/auth/callback?token=${token}`);
     } catch (err) {
       console.error('Google OAuth callback error:', err);
       res.redirect('https://candidate5.co.uk/login?error=oauth_failed');
