@@ -29,6 +29,8 @@ router.get('/google/callback',
         process.env.JWT_SECRET,
         { expiresIn: '1h' }
       );
+      // Log the redirect URL for debugging
+      console.log('Redirecting to:', `https://candidate5.co.uk/auth/callback?token=${token}`);
       // Redirect to frontend with token
       res.redirect(`https://candidate5.co.uk/auth/callback?token=${token}`);
     } catch (err) {
