@@ -30,8 +30,12 @@ passport.use(new GoogleStrategy({
       }
       let user = await User.findOne({ where: { email } });
       if (!user) {
-        // Block login, do not auto-register
-        return done(null, false, { message: 'Please register first using email/password.' });
+        // Auto-register new user from Google profile
+        user = await User.create({
+          email,
+          name: profile.displayName || '',
+          google: profile.id
+        });
       }
       // Link Google account if not already linked
       if (!user.google) {
