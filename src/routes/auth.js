@@ -16,6 +16,12 @@ router.get('/google', (req, res, next) => {
 }, passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 router.get('/google/callback',
+  (req, res, next) => {
+    // Log the full request URL and query parameters
+    console.log('Google OAuth callback hit. Full URL:', req.originalUrl);
+    console.log('Query params:', req.query);
+    next();
+  },
   passport.authenticate('google', { failureRedirect: 'https://candidate5.co.uk/login' }),
   (req, res) => {
     try {
